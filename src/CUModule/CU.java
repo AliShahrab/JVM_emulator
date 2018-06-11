@@ -229,6 +229,32 @@ public class CU {
         controlSignal.setALU_shifter(0);
     }
 
+    public void nop(){
+        controlSignal = new ControlSignal();
+        controlSignal.setMemory_control(null);
+        controlSignal.setDont_sign_extend(false);
+        controlSignal.setALU_shifter(0);
+    }
+
+    public void fetch(){
+        controlSignal.setMemory_control("fetch");
+    }
+
+    public void write(){
+        controlSignal.setMemory_control("write");
+    }
+
+    public void read(){
+        controlSignal.setMemory_control("read");
+    }
+
+    public void fetch_w(){
+        controlSignal.setMemory_control("fetch_w");
+    }
+
+    public void read_w(){
+        controlSignal.setMemory_control("read_w");
+    }
 
     private static int[] create_alu_control(String name){
         int[] result = new int[6];

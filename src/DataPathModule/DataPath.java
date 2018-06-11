@@ -11,8 +11,10 @@ public class DataPath {
     private Bus c_bus = new Bus();
     private Bus h_bus = new Bus();
     private ALU alu = new ALU();
-    private Bus data_from_memory = new Bus();
-    private Bus address_for_memory = new Bus();
+    private Bus data_from_memory_fetch = new Bus();
+    private Bus data_from_memory_read = new Bus();
+    private Bus address_for_memory_fetch = new Bus();
+    private Bus address_for_memory_read = new Bus();
     private Bus data_for_memory = new Bus();
     private HashMap<Integer, Integer> b_map;
     private HashMap<Integer, Integer> c_map;
@@ -61,39 +63,38 @@ public class DataPath {
         for (int i = 0; i < 11; i++) {
             regs.add(new Reg(0));
         }
-        regs.get(5).setValue(194);
-        regs.get(6).setValue(138);
-        regs.get(7).setValue(82);
-        regs.get(4).setValue(4);
-
-
-        regs.get(0).setValue(1);
-        regs.get(1).setValue(2);
-        regs.get(2).setValue(3);
-        regs.get(3).setValue(4);
-        regs.get(4).setValue(5);
-        regs.get(5).setValue(6);
-        regs.get(6).setValue(7);
-        regs.get(7).setValue(8);
-        regs.get(8).setValue(9);
-        regs.get(9).setValue(10);
-        regs.get(10).setValue(11);
     }
 
     public Bus getData_for_memory() {
+        data_for_memory.setValue(regs.get(1).getValue());
         return data_for_memory;
     }
 
-    public Bus getAddress_for_memory() {
-        return address_for_memory;
+    public Bus getAddress_for_memory_read() {
+        address_for_memory_read.setValue(regs.get(0).getValue());
+        return address_for_memory_read;
     }
 
-    public void setData_from_memory(Bus data_from_memory) {
-        this.data_from_memory.setValue(data_from_memory.getValue());
+    public Bus getAddress_for_memory_fetch() {
+        address_for_memory_fetch.setValue(regs.get(2).getValue());
+        return address_for_memory_fetch;
+    }
+
+
+    public void setData_from_memory_read(Bus data_from_memory_read) {
+        this.data_from_memory_read.setValue(data_from_memory_read.getValue());
+    }
+
+    public void setData_from_memory_fetch(Bus data_from_memory_fetch) {
+        this.data_from_memory_fetch.setValue(data_from_memory_fetch.getValue());
     }
 
     public boolean get_Z() {
         return Z;
+    }
+
+    public int get_opcode(){
+        return regs.get(9).getValue();
     }
 
     public boolean get_N() {
@@ -105,27 +106,44 @@ public class DataPath {
         this.controlSignal = controlSignal;
     }
     public void reset(){
-        regs.get(0).setValue(1);
-        regs.get(1).setValue(2);
-        regs.get(2).setValue(3);
-        regs.get(3).setValue(4);
-        regs.get(4).setValue(5);
-        regs.get(5).setValue(6);
-        regs.get(6).setValue(7);
-        regs.get(7).setValue(8);
-        regs.get(8).setValue(9);
-        regs.get(9).setValue(10);
-        regs.get(10).setValue(11);
+        regs.get(0).setValue(0);
+        regs.get(1).setValue(0);
+        regs.get(2).setValue(0);
+        regs.get(3).setValue(0);
+        regs.get(4).setValue(4);
+        regs.get(5).setValue(192);
+        regs.get(6).setValue(128);
+        regs.get(7).setValue(64);
+        regs.get(8).setValue(0);
+        regs.get(9).setValue(0);
+        regs.get(10).setValue(0);
     }
 
 
     public void next_clock(){
-        b_bus.setValue(set_reg_of_b_bus().getValue());
-        h_bus.setValue(regs.get(regs.size() - 1).getValue());
-        c_bus.setValue(alu.perform(b_bus, h_bus, controlSignal.getALU_control()).getValue());
-        this.Z = alu.get_Z();
-        this.N = alu.get_N();
-        this.change_reg_with_b_bus();
+        if (!this.isNop()) {
+            b_bus.setValue(set_reg_of_b_bus().getValue());
+            h_bus.setValue(regs.get(regs.size() - 1).getValue());
+            c_bus.setValue(alu.perform(b_bus, h_bus, controlSignal.getALU_control()).getValue());
+            this.Z = alu.get_Z();
+            this.N = alu.get_N();
+            this.change_reg_with_c_bus();
+        }else {
+            this.Z = false;
+            this.N = false;
+        }
+        this.memory_process();
+//        if (controlSignal.getMemory_control()[0] == 1)
+    }
+
+
+    private void memory_process(){
+        int[] tmp = controlSignal.getMemory_control();
+        if (tmp[3] == 1){
+            regs.get(3).setValue(data_from_memory_fetch.getValue());
+        }else if (tmp[4] == 1){
+            regs.get(1).setValue(data_from_memory_read.getValue());
+        }
     }
 
     private Reg set_reg_of_b_bus(){
@@ -139,7 +157,18 @@ public class DataPath {
         return regs.get(b_map.get(index));
     }
 
-    private void change_reg_with_b_bus(){
+    private boolean isNop(){
+        boolean nop = true;
+        int[] tmp = controlSignal.getC_bus();
+        for (int aTmp : tmp) {
+            if (aTmp == 1) {
+                nop = false;
+            }
+        }
+        return nop;
+    }
+
+    private void change_reg_with_c_bus(){
         int[] tmp = controlSignal.getC_bus();
         for (int i = 0; i < tmp.length; i++) {
             if (tmp[i] == 1){
